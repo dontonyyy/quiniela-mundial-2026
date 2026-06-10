@@ -17,7 +17,7 @@ python app.py
 
 Abrí http://localhost:5000 en el navegador. La base de datos `quiniela.db` (SQLite) se crea sola la primera vez.
 
-> Si definís la variable de entorno `DATABASE_URL` (con una conexión a Postgres), la app usa esa base en lugar de SQLite. Ver sección "Base de datos persistente" más abajo.
+> Si defines la variable de entorno `DATABASE_URL` (con una conexión a Postgres), la app usa esa base en lugar de SQLite. Ver sección "Base de datos persistente" más abajo.
 
 ## Cómo funciona
 
@@ -33,8 +33,8 @@ Entrar a `/admin` con la contraseña (por defecto `mundial2026`, cambiable con l
 
 ## Desplegar gratis durante el Mundial (Render)
 
-1. Subí esta carpeta a un repo de GitHub.
-2. Entrá a https://render.com, creá una cuenta y un nuevo "Web Service" apuntando al repo.
+1. Sube esta carpeta a un repo de GitHub.
+2. Entra a https://render.com, crea una cuenta y un nuevo "Web Service" apuntando al repo.
 3. Configuración:
    - **Build command**: `pip install -r requirements.txt`
    - **Start command**: `gunicorn app:app`
@@ -49,9 +49,9 @@ Entrar a `/admin` con la contraseña (por defecto `mundial2026`, cambiable con l
 
 Render usa un disco temporal: en el plan gratuito, **cada deploy borra `quiniela.db`**. Para que los registros, pronósticos y resultados sobrevivan a los deploys, conectá una base Postgres gratuita de Neon:
 
-1. Andá a https://neon.tech, creá una cuenta gratis y un proyecto nuevo (cualquier nombre, ej. `quiniela-mundial`).
-2. En el dashboard del proyecto, copiá el **Connection string** (algo como `postgresql://usuario:contraseña@ep-xxxx.neon.tech/neondb?sslmode=require`).
-3. En Render, andá a tu servicio → **Environment** → agregá una variable:
+1. Ve a https://neon.tech, crea una cuenta gratis y un proyecto nuevo (cualquier nombre, ej. `quiniela-mundial`).
+2. En el dashboard del proyecto, copia el **Connection string** (algo como `postgresql://usuario:contraseña@ep-xxxx.neon.tech/neondb?sslmode=require`).
+3. En Render, ve a tu servicio → **Environment** → agrega una variable:
    - `DATABASE_URL` = el connection string que copiaste de Neon
-4. Hacé un **Manual Deploy → Deploy latest commit**. La app va a crear las tablas automáticamente en Neon la primera vez que arranque.
+4. Haz un **Manual Deploy → Deploy latest commit**. La app va a crear las tablas automáticamente en Neon la primera vez que arranque.
 5. Listo: a partir de ahora, los deploys y reinicios ya no van a borrar los datos, porque viven en Neon y no en el disco de Render.
