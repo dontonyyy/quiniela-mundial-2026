@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quiniela Mundial 2026</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">⚽ Quiniela Mundial 2026</div>
+    <nav>
+      {% if user %}
+        <a href="{{ url_for('predicciones') }}">Mis pronósticos</a>
+        <a href="{{ url_for('tabla') }}">Tabla</a>
+        <a href="{{ url_for('resultados') }}">Resultados</a>
+        <span class="userbadge">{{ user }}</span>
+        <a href="{{ url_for('logout') }}">Salir</a>
+      {% endif %}
+      <a href="{{ url_for('admin') }}">Admin</a>
+    </nav>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

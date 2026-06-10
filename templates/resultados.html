@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Resultados y pronósticos</h1>
+{% if not rows %}
+  <p>Todavía no hay resultados cargados.</p>
+{% endif %}
+{% for match, user_preds in rows %}
+  <div class="card result-card">
+    <h3>Grupo {{ match.group_name }} · {{ match.date }}</h3>
+    <h2>{{ match.team1 }} {{ match.score1 }} - {{ match.score2 }} {{ match.team2 }}</h2>
+    <table class="preds-table">
+      <thead>
+        <tr><th>Jugador</th><th>Pronóstico</th><th>Puntos</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr {% if u == user %}class="me"{% endif %}>
+            <td>{{ u }}</td>
+            {% set entry = user_preds[u] %}
+            {% if entry %}
+              <td>{{ entry[0] }} - {{ entry[1] }}</td>
+              <td>{{ entry[2] }}</td>
+            {% else %}
+              <td>-</td>
+              <td>0</td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endfor %}
+{% endblock %}

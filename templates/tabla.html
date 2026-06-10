@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Tabla de posiciones</h1>
+<table class="ranking-table">
+  <thead>
+    <tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>
+  </thead>
+  <tbody>
+    {% for nombre, puntos in ranking %}
+    <tr {% if nombre == user %}class="me"{% endif %}>
+      <td>{{ loop.index }}</td>
+      <td>{{ nombre }}</td>
+      <td>{{ puntos }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="legend">3 puntos: resultado exacto · 1 punto: acertás ganador o empate · 0 puntos: fallaste</p>
+{% endblock %}

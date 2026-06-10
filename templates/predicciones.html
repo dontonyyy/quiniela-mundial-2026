@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Mis pronósticos</h1>
+<p>Cargá el resultado que crees que va a salir en cada partido. Podés modificarlos hasta que el admin cargue el resultado real.</p>
+<form method="post">
+  {% set ns = namespace(current_date="") %}
+  {% for m in matches %}
+    {% if m.date != ns.current_date %}
+      {% set ns.current_date = m.date %}
+      <h2 class="date-header">{{ m.date }}</h2>
+    {% endif %}
+    <div class="match-row {% if m.score1 is not none %}locked{% endif %}">
+      <span class="group-tag">Grupo {{ m.group_name }}</span>
+      <span class="team">{{ m.team1 }}</span>
+      {% set p = preds.get(m.id) %}
+      <input type="number" min="0" name="pred1_{{ m.id }}" value="{{ p[0] if p else '' }}"
+             {% if m.score1 is not none %}disabled{% endif %}>
+      <span class="vs">-</span>
+      <input type="number" min="0" name="pred2_{{ m.id }}" value="{{ p[1] if p else '' }}"
+             {% if m.score1 is not none %}disabled{% endif %}>
+      <span class="team">{{ m.team2 }}</span>
+      {% if m.score1 is not none %}
+        <span class="real-result">Resultado: {{ m.score1 }} - {{ m.score2 }}</span>
+      {% endif %}
+    </div>
+  {% endfor %}
+  <button type="submit" class="save-btn">Guardar pronósticos</button>
+</form>
+{% endblock %}
