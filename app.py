@@ -12,16 +12,16 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "quiniela.db")
 # (match_number, date, group, team1, team2)
 MATCHES = [
     (1, "2026-06-11", "A", "México", "Sudáfrica"),
-    (2, "2026-06-11", "A", "Corea del Sur", "Chequia"),
+    (2, "2026-06-11", "A", "Corea del Sur", "República Checa"),
     (3, "2026-06-12", "B", "Canadá", "Bosnia y Herzegovina"),
     (4, "2026-06-12", "D", "Estados Unidos", "Paraguay"),
     (5, "2026-06-13", "C", "Haití", "Escocia"),
     (6, "2026-06-13", "D", "Australia", "Turquía"),
     (7, "2026-06-13", "C", "Brasil", "Marruecos"),
-    (8, "2026-06-13", "B", "Catar", "Suiza"),
+    (8, "2026-06-13", "B", "Qatar", "Suiza"),
     (9, "2026-06-14", "E", "Costa de Marfil", "Ecuador"),
     (10, "2026-06-14", "E", "Alemania", "Curazao"),
-    (11, "2026-06-14", "F", "Países Bajos", "Japón"),
+    (11, "2026-06-14", "F", "Holanda", "Japón"),
     (12, "2026-06-14", "F", "Suecia", "Túnez"),
     (13, "2026-06-15", "H", "Arabia Saudita", "Uruguay"),
     (14, "2026-06-15", "H", "España", "Cabo Verde"),
@@ -35,9 +35,9 @@ MATCHES = [
     (22, "2026-06-17", "L", "Inglaterra", "Croacia"),
     (23, "2026-06-17", "K", "Portugal", "RD Congo"),
     (24, "2026-06-17", "K", "Uzbekistán", "Colombia"),
-    (25, "2026-06-18", "A", "Chequia", "Sudáfrica"),
+    (25, "2026-06-18", "A", "República Checa", "Sudáfrica"),
     (26, "2026-06-18", "B", "Suiza", "Bosnia y Herzegovina"),
-    (27, "2026-06-18", "B", "Canadá", "Catar"),
+    (27, "2026-06-18", "B", "Canadá", "Qatar"),
     (28, "2026-06-18", "A", "México", "Corea del Sur"),
     (29, "2026-06-19", "C", "Brasil", "Haití"),
     (30, "2026-06-19", "C", "Escocia", "Marruecos"),
@@ -45,7 +45,7 @@ MATCHES = [
     (32, "2026-06-19", "D", "Estados Unidos", "Australia"),
     (33, "2026-06-20", "E", "Alemania", "Costa de Marfil"),
     (34, "2026-06-20", "E", "Ecuador", "Curazao"),
-    (35, "2026-06-20", "F", "Países Bajos", "Suecia"),
+    (35, "2026-06-20", "F", "Holanda", "Suecia"),
     (36, "2026-06-20", "F", "Túnez", "Japón"),
     (37, "2026-06-21", "H", "Uruguay", "Cabo Verde"),
     (38, "2026-06-21", "H", "España", "Arabia Saudita"),
@@ -62,13 +62,13 @@ MATCHES = [
     (49, "2026-06-24", "C", "Escocia", "Brasil"),
     (50, "2026-06-24", "C", "Marruecos", "Haití"),
     (51, "2026-06-24", "B", "Suiza", "Canadá"),
-    (52, "2026-06-24", "B", "Bosnia y Herzegovina", "Catar"),
-    (53, "2026-06-24", "A", "Chequia", "México"),
+    (52, "2026-06-24", "B", "Bosnia y Herzegovina", "Qatar"),
+    (53, "2026-06-24", "A", "República Checa", "México"),
     (54, "2026-06-24", "A", "Sudáfrica", "Corea del Sur"),
     (55, "2026-06-25", "E", "Curazao", "Costa de Marfil"),
     (56, "2026-06-25", "E", "Ecuador", "Alemania"),
     (57, "2026-06-25", "F", "Japón", "Suecia"),
-    (58, "2026-06-25", "F", "Túnez", "Países Bajos"),
+    (58, "2026-06-25", "F", "Túnez", "Holanda"),
     (59, "2026-06-25", "D", "Turquía", "Estados Unidos"),
     (60, "2026-06-25", "D", "Paraguay", "Australia"),
     (61, "2026-06-26", "I", "Noruega", "Francia"),
@@ -134,7 +134,12 @@ def init_db():
             "INSERT INTO matches (match_number, date, group_name, team1, team2) VALUES (?,?,?,?,?)",
             MATCHES,
         )
-        db.commit()
+    else:
+        renames = {"Chequia": "República Checa", "Catar": "Qatar", "Países Bajos": "Holanda"}
+        for old, new in renames.items():
+            db.execute("UPDATE matches SET team1=? WHERE team1=?", (new, old))
+            db.execute("UPDATE matches SET team2=? WHERE team2=?", (new, old))
+    db.commit()
     db.close()
 
 
@@ -191,14 +196,14 @@ def registro():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         if not username or not password:
-            error = "Completá nombre y contraseña."
+            error = "Completa tu nombre y contraseña."
         elif len(password) < 4:
             error = "La contraseña debe tener al menos 4 caracteres."
         else:
             db = get_db()
             existing = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
             if existing:
-                error = "Ese nombre ya está registrado, elegí otro."
+                error = "Ese nombre ya está registrado, elige otro."
             else:
                 db.execute(
                     "INSERT INTO users (username, password_hash) VALUES (?, ?)",
@@ -270,7 +275,7 @@ def predicciones_guardar(match_id):
     p1 = request.form.get("pred1")
     p2 = request.form.get("pred2")
     if p1 in (None, "") or p2 in (None, ""):
-        return {"ok": False, "error": "Completá ambos resultados"}, 400
+        return {"ok": False, "error": "Completa ambos resultados"}, 400
     try:
         p1, p2 = int(p1), int(p2)
     except ValueError:

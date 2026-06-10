@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Mis pronósticos</h1>
-<p>Cargá el resultado que crees que va a salir en cada partido. Podés modificarlos hasta que el admin cargue el resultado real.</p>
+<p>Carga el resultado que crees que va a salir en cada partido. Puedes modificarlos hasta que el admin cargue el resultado real.</p>
 <form method="post">
   {% set ns = namespace(current_date="") %}
   {% for m in matches %}
