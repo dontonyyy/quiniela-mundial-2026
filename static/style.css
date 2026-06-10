@@ -75,6 +75,19 @@ body {
 
 .login-card button:hover, .save-btn:hover { background: #142c52; }
 
+.error {
+  color: #c0392b;
+  background: #fdecea;
+  padding: 0.5rem;
+  border-radius: 6px;
+  margin-top: 0.75rem;
+}
+
+.alt-link {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
 h1 { color: #1b3a6b; }
 
 .date-header {

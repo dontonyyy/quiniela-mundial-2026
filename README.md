@@ -4,7 +4,7 @@ App web supersencilla para la quiniela de oficina del Mundial 2026 (fase de grup
 
 ## Usuarios
 
-Adrian, Gustavo, Marcos, Lillana, Arnulfo, Antonio (se eligen de una lista, sin contraseña).
+Cualquiera puede registrarse desde `/registro` eligiendo el nombre que quiera y una contraseña (mínimo 4 caracteres). Después inicia sesión normalmente desde `/`.
 
 ## Cómo correrlo localmente
 

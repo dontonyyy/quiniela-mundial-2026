@@ -1,13 +1,12 @@
 import os
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, session, g
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "quiniela-mundial-2026")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "mundial2026")
 DB_PATH = os.path.join(os.path.dirname(__file__), "quiniela.db")
-
-USERS = ["Adrian", "Gustavo", "Marcos", "Lillana", "Arnulfo", "Antonio"]
 
 # (match_number, date, group, team1, team2)
 MATCHES = [
@@ -122,6 +121,11 @@ def init_db():
         pred2 INTEGER,
         UNIQUE(user, match_id)
     );
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE COLLATE NOCASE,
+        password_hash TEXT
+    );
     """)
     count = db.execute("SELECT COUNT(*) FROM matches").fetchone()[0]
     if count == 0:
@@ -147,12 +151,43 @@ def calc_points(pred1, pred2, score1, score2):
 
 @app.route("/", methods=["GET", "POST"])
 def login():
+    error = None
     if request.method == "POST":
-        user = request.form.get("user")
-        if user in USERS:
-            session["user"] = user
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        db = get_db()
+        row = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+        if row and check_password_hash(row["password_hash"], password):
+            session["user"] = row["username"]
             return redirect(url_for("predicciones"))
-    return render_template("login.html", users=USERS)
+        error = "Usuario o contraseña incorrectos."
+    return render_template("login.html", error=error)
+
+
+@app.route("/registro", methods=["GET", "POST"])
+def registro():
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        if not username or not password:
+            error = "Completá nombre y contraseña."
+        elif len(password) < 4:
+            error = "La contraseña debe tener al menos 4 caracteres."
+        else:
+            db = get_db()
+            existing = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+            if existing:
+                error = "Ese nombre ya está registrado, elegí otro."
+            else:
+                db.execute(
+                    "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+                    (username, generate_password_hash(password)),
+                )
+                db.commit()
+                session["user"] = username
+                return redirect(url_for("predicciones"))
+    return render_template("registro.html", error=error)
 
 
 @app.route("/logout")
@@ -204,8 +239,9 @@ def tabla():
     db = get_db()
     matches = db.execute("SELECT * FROM matches").fetchall()
     all_preds = db.execute("SELECT * FROM predictions").fetchall()
+    users = [row["username"] for row in db.execute("SELECT username FROM users").fetchall()]
 
-    scores = {u: 0 for u in USERS}
+    scores = {u: 0 for u in users}
     for pred in all_preds:
         match = next((m for m in matches if m["id"] == pred["match_id"]), None)
         if match is None:
@@ -225,6 +261,7 @@ def resultados():
         "SELECT * FROM matches WHERE score1 IS NOT NULL ORDER BY match_number"
     ).fetchall()
     all_preds = db.execute("SELECT * FROM predictions").fetchall()
+    users = [row["username"] for row in db.execute("SELECT username FROM users").fetchall()]
 
     preds_by_match = {}
     for pred in all_preds:
@@ -237,7 +274,7 @@ def resultados():
     rows = []
     for match in matches:
         user_preds = {}
-        for u in USERS:
+        for u in users:
             entry = preds_by_match.get(match["id"], {}).get(u)
             if entry:
                 p1, p2, _ = entry
@@ -247,7 +284,7 @@ def resultados():
                 user_preds[u] = None
         rows.append((match, user_preds))
 
-    return render_template("resultados.html", rows=rows, users=USERS, user=session.get("user"))
+    return render_template("resultados.html", rows=rows, users=users, user=session.get("user"))
 
 
 @app.route("/admin", methods=["GET", "POST"])
