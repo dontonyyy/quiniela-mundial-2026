@@ -8,6 +8,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "quiniela-mundial-2026")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "mundial2026")
 DB_PATH = os.path.join(os.path.dirname(__file__), "quiniela.db")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # (match_number, date, group, team1, team2)
 MATCHES = [
@@ -86,11 +87,51 @@ MATCHES = [
 ]
 
 
+class DB:
+    """Envoltorio fino que permite usar la misma sintaxis de consultas
+    (placeholders '?') tanto con SQLite como con Postgres."""
+
+    def __init__(self, conn, is_postgres):
+        self.conn = conn
+        self.is_postgres = is_postgres
+
+    def execute(self, sql, params=()):
+        if self.is_postgres:
+            sql = sql.replace("?", "%s")
+        cur = self.conn.cursor()
+        cur.execute(sql, params)
+        return cur
+
+    def executemany(self, sql, seq):
+        if self.is_postgres:
+            sql = sql.replace("?", "%s")
+        cur = self.conn.cursor()
+        cur.executemany(sql, seq)
+        return cur
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
+
+def connect_db():
+    if DATABASE_URL:
+        import psycopg2
+        import psycopg2.extras
+
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        return DB(conn, is_postgres=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return DB(conn, is_postgres=False)
+
+
 def get_db():
     db = getattr(g, "_database", None)
     if db is None:
-        db = g._database = sqlite3.connect(DB_PATH)
-        db.row_factory = sqlite3.Row
+        db = g._database = connect_db()
     return db
 
 
@@ -102,33 +143,72 @@ def close_connection(exception):
 
 
 def init_db():
-    db = sqlite3.connect(DB_PATH)
-    db.executescript("""
-    CREATE TABLE IF NOT EXISTS matches (
-        id INTEGER PRIMARY KEY,
-        match_number INTEGER,
-        date TEXT,
-        group_name TEXT,
-        team1 TEXT,
-        team2 TEXT,
-        score1 INTEGER,
-        score2 INTEGER
-    );
-    CREATE TABLE IF NOT EXISTS predictions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user TEXT,
-        match_id INTEGER,
-        pred1 INTEGER,
-        pred2 INTEGER,
-        UNIQUE(user, match_id)
-    );
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE COLLATE NOCASE,
-        password_hash TEXT
-    );
-    """)
-    count = db.execute("SELECT COUNT(*) FROM matches").fetchone()[0]
+    db = connect_db()
+
+    if db.is_postgres:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS matches (
+                id SERIAL PRIMARY KEY,
+                match_number INTEGER,
+                date TEXT,
+                group_name TEXT,
+                team1 TEXT,
+                team2 TEXT,
+                score1 INTEGER,
+                score2 INTEGER
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS predictions (
+                id SERIAL PRIMARY KEY,
+                username TEXT,
+                match_id INTEGER,
+                pred1 INTEGER,
+                pred2 INTEGER,
+                UNIQUE(username, match_id)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT,
+                password_hash TEXT
+            )
+        """)
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_idx ON users (LOWER(username))")
+    else:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS matches (
+                id INTEGER PRIMARY KEY,
+                match_number INTEGER,
+                date TEXT,
+                group_name TEXT,
+                team1 TEXT,
+                team2 TEXT,
+                score1 INTEGER,
+                score2 INTEGER
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS predictions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT,
+                match_id INTEGER,
+                pred1 INTEGER,
+                pred2 INTEGER,
+                UNIQUE(username, match_id)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT,
+                password_hash TEXT
+            )
+        """)
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_idx ON users (LOWER(username))")
+
+    count = db.execute("SELECT COUNT(*) AS cnt FROM matches").fetchone()["cnt"]
     if count == 0:
         db.executemany(
             "INSERT INTO matches (match_number, date, group_name, team1, team2) VALUES (?,?,?,?,?)",
@@ -166,7 +246,7 @@ def inject_pending_today():
         """SELECT m.team1, m.team2 FROM matches m
            WHERE m.date = ?
            AND NOT EXISTS (
-               SELECT 1 FROM predictions p WHERE p.match_id = m.id AND p.user = ?
+               SELECT 1 FROM predictions p WHERE p.match_id = m.id AND p.username = ?
            )
            ORDER BY m.match_number""",
         (today, user),
@@ -181,7 +261,7 @@ def login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         db = get_db()
-        row = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+        row = db.execute("SELECT * FROM users WHERE LOWER(username) = LOWER(?)", (username,)).fetchone()
         if row and check_password_hash(row["password_hash"], password):
             session["user"] = row["username"]
             return redirect(url_for("predicciones"))
@@ -201,7 +281,7 @@ def registro():
             error = "La contraseña debe tener al menos 4 caracteres."
         else:
             db = get_db()
-            existing = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+            existing = db.execute("SELECT id FROM users WHERE LOWER(username) = LOWER(?)", (username,)).fetchone()
             if existing:
                 error = "Ese nombre ya está registrado, elige otro."
             else:
@@ -243,9 +323,9 @@ def predicciones():
             except ValueError:
                 continue
             db.execute(
-                """INSERT INTO predictions (user, match_id, pred1, pred2)
+                """INSERT INTO predictions (username, match_id, pred1, pred2)
                    VALUES (?, ?, ?, ?)
-                   ON CONFLICT(user, match_id) DO UPDATE SET pred1=excluded.pred1, pred2=excluded.pred2""",
+                   ON CONFLICT(username, match_id) DO UPDATE SET pred1=excluded.pred1, pred2=excluded.pred2""",
                 (user, match["id"], p1, p2),
             )
         db.commit()
@@ -254,7 +334,7 @@ def predicciones():
     matches = db.execute("SELECT * FROM matches ORDER BY match_number").fetchall()
     preds = {
         row["match_id"]: (row["pred1"], row["pred2"])
-        for row in db.execute("SELECT * FROM predictions WHERE user = ?", (user,)).fetchall()
+        for row in db.execute("SELECT * FROM predictions WHERE username = ?", (user,)).fetchall()
     }
     return render_template("predicciones.html", matches=matches, preds=preds, user=user)
 
@@ -282,9 +362,9 @@ def predicciones_guardar(match_id):
         return {"ok": False, "error": "Resultado inválido"}, 400
 
     db.execute(
-        """INSERT INTO predictions (user, match_id, pred1, pred2)
+        """INSERT INTO predictions (username, match_id, pred1, pred2)
            VALUES (?, ?, ?, ?)
-           ON CONFLICT(user, match_id) DO UPDATE SET pred1=excluded.pred1, pred2=excluded.pred2""",
+           ON CONFLICT(username, match_id) DO UPDATE SET pred1=excluded.pred1, pred2=excluded.pred2""",
         (user, match_id, p1, p2),
     )
     db.commit()
@@ -304,8 +384,8 @@ def tabla():
         if match is None:
             continue
         pts = calc_points(pred["pred1"], pred["pred2"], match["score1"], match["score2"])
-        if pred["user"] in scores:
-            scores[pred["user"]] += pts
+        if pred["username"] in scores:
+            scores[pred["username"]] += pts
 
     ranking = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     return render_template("tabla.html", ranking=ranking, user=session.get("user"))
@@ -322,7 +402,7 @@ def resultados():
 
     preds_by_match = {}
     for pred in all_preds:
-        preds_by_match.setdefault(pred["match_id"], {})[pred["user"]] = (
+        preds_by_match.setdefault(pred["match_id"], {})[pred["username"]] = (
             pred["pred1"],
             pred["pred2"],
             calc_points(pred["pred1"], pred["pred2"], None, None),

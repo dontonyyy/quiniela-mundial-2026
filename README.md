@@ -15,7 +15,9 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Abrí http://localhost:5000 en el navegador. La base de datos `quiniela.db` se crea sola la primera vez.
+Abrí http://localhost:5000 en el navegador. La base de datos `quiniela.db` (SQLite) se crea sola la primera vez.
+
+> Si definís la variable de entorno `DATABASE_URL` (con una conexión a Postgres), la app usa esa base en lugar de SQLite. Ver sección "Base de datos persistente" más abajo.
 
 ## Cómo funciona
 
@@ -42,3 +44,14 @@ Entrar a `/admin` con la contraseña (por defecto `mundial2026`, cambiable con l
 5. Render te da una URL pública (`https://tuapp.onrender.com`) que pueden compartir en la oficina.
 
 > Nota: en el plan gratuito, el sitio puede "dormirse" tras un rato de inactividad y tardar unos segundos en despertar al primer ingreso del día. Para una quiniela de oficina no debería ser un problema.
+
+## Base de datos persistente (Neon Postgres)
+
+Render usa un disco temporal: en el plan gratuito, **cada deploy borra `quiniela.db`**. Para que los registros, pronósticos y resultados sobrevivan a los deploys, conectá una base Postgres gratuita de Neon:
+
+1. Andá a https://neon.tech, creá una cuenta gratis y un proyecto nuevo (cualquier nombre, ej. `quiniela-mundial`).
+2. En el dashboard del proyecto, copiá el **Connection string** (algo como `postgresql://usuario:contraseña@ep-xxxx.neon.tech/neondb?sslmode=require`).
+3. En Render, andá a tu servicio → **Environment** → agregá una variable:
+   - `DATABASE_URL` = el connection string que copiaste de Neon
+4. Hacé un **Manual Deploy → Deploy latest commit**. La app va a crear las tablas automáticamente en Neon la primera vez que arranque.
+5. Listo: a partir de ahora, los deploys y reinicios ya no van a borrar los datos, porque viven en Neon y no en el disco de Render.
