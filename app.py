@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from datetime import date
 from flask import Flask, render_template, request, redirect, url_for, session, g
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -147,6 +148,25 @@ def calc_points(pred1, pred2, score1, score2):
     if pred_result == real_result:
         return 1
     return 0
+
+
+@app.context_processor
+def inject_pending_today():
+    user = session.get("user")
+    if not user:
+        return {}
+    db = get_db()
+    today = date.today().isoformat()
+    pending = db.execute(
+        """SELECT m.team1, m.team2 FROM matches m
+           WHERE m.date = ?
+           AND NOT EXISTS (
+               SELECT 1 FROM predictions p WHERE p.match_id = m.id AND p.user = ?
+           )
+           ORDER BY m.match_number""",
+        (today, user),
+    ).fetchall()
+    return {"pending_today": pending}
 
 
 @app.route("/", methods=["GET", "POST"])

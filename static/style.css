@@ -83,6 +83,25 @@ body {
   margin-top: 0.75rem;
 }
 
+.reminder {
+  background: #fff3cd;
+  border: 1px solid #ffe08a;
+  color: #7a5b00;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.reminder ul {
+  margin: 0.4rem 0;
+  padding-left: 1.4rem;
+}
+
+.reminder a {
+  color: #1b3a6b;
+  font-weight: bold;
+}
+
 .alt-link {
   margin-top: 1rem;
   font-size: 0.9rem;

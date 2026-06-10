@@ -21,6 +21,19 @@
     </nav>
   </header>
   <main class="container">
+    {% if pending_today %}
+      <div class="reminder">
+        ⏰ Todavía tenés pendiente cargar tu pronóstico de hoy:
+        <ul>
+          {% for m in pending_today %}
+            <li>{{ m.team1 }} vs {{ m.team2 }}</li>
+          {% endfor %}
+        </ul>
+        {% if request.endpoint != 'predicciones' %}
+          <a href="{{ url_for('predicciones') }}">Ir a cargar pronósticos</a>
+        {% endif %}
+      </div>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 </body>
