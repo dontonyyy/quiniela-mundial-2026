@@ -254,6 +254,38 @@ def predicciones():
     return render_template("predicciones.html", matches=matches, preds=preds, user=user)
 
 
+@app.route("/predicciones/guardar/<int:match_id>", methods=["POST"])
+def predicciones_guardar(match_id):
+    user = session.get("user")
+    if not user:
+        return {"ok": False, "error": "No autenticado"}, 403
+
+    db = get_db()
+    match = db.execute("SELECT score1 FROM matches WHERE id = ?", (match_id,)).fetchone()
+    if match is None:
+        return {"ok": False, "error": "Partido no encontrado"}, 404
+    if match["score1"] is not None:
+        return {"ok": False, "error": "Este partido ya tiene resultado cargado"}, 400
+
+    p1 = request.form.get("pred1")
+    p2 = request.form.get("pred2")
+    if p1 in (None, "") or p2 in (None, ""):
+        return {"ok": False, "error": "Completá ambos resultados"}, 400
+    try:
+        p1, p2 = int(p1), int(p2)
+    except ValueError:
+        return {"ok": False, "error": "Resultado inválido"}, 400
+
+    db.execute(
+        """INSERT INTO predictions (user, match_id, pred1, pred2)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(user, match_id) DO UPDATE SET pred1=excluded.pred1, pred2=excluded.pred2""",
+        (user, match_id, p1, p2),
+    )
+    db.commit()
+    return {"ok": True}
+
+
 @app.route("/tabla")
 def tabla():
     db = get_db()
@@ -335,6 +367,27 @@ def admin():
 
     matches = db.execute("SELECT * FROM matches ORDER BY match_number").fetchall()
     return render_template("admin.html", matches=matches)
+
+
+@app.route("/admin/guardar/<int:match_id>", methods=["POST"])
+def admin_guardar(match_id):
+    if not session.get("admin"):
+        return {"ok": False, "error": "No autenticado"}, 403
+
+    db = get_db()
+    s1 = request.form.get("score1")
+    s2 = request.form.get("score2")
+    if s1 in (None, "") or s2 in (None, ""):
+        db.execute("UPDATE matches SET score1=NULL, score2=NULL WHERE id=?", (match_id,))
+        db.commit()
+        return {"ok": True}
+    try:
+        s1, s2 = int(s1), int(s2)
+    except ValueError:
+        return {"ok": False, "error": "Resultado inválido"}, 400
+    db.execute("UPDATE matches SET score1=?, score2=? WHERE id=?", (s1, s2, match_id))
+    db.commit()
+    return {"ok": True}
 
 
 @app.route("/admin/logout")

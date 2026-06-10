@@ -21,9 +21,13 @@
       <span class="team">{{ m.team2 }}</span>
       {% if m.score1 is not none %}
         <span class="real-result">Resultado: {{ m.score1 }} - {{ m.score2 }}</span>
+      {% else %}
+        <button type="button" class="save-row-btn"
+                data-url="{{ url_for('predicciones_guardar', match_id=m.id) }}"
+                data-field1="pred1" data-field2="pred2">Guardar</button>
       {% endif %}
     </div>
   {% endfor %}
-  <button type="submit" class="save-btn">Guardar pronósticos</button>
+  <button type="submit" class="save-btn">Guardar todos los pronósticos</button>
 </form>
 {% endblock %}

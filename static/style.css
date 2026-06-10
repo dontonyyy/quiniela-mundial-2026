@@ -164,6 +164,23 @@ h1 { color: #1b3a6b; }
   font-weight: bold;
 }
 
+.save-row-btn {
+  margin-left: auto;
+  background: #1b3a6b;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.save-row-btn:hover { background: #142c52; }
+.save-row-btn:disabled { opacity: 0.7; cursor: default; }
+.save-row-btn.btn-ok { background: #2e7d32; }
+.save-row-btn.btn-error { background: #c0392b; }
+
 .save-btn {
   display: block;
   width: 100%;

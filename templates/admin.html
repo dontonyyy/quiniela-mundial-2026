@@ -16,8 +16,11 @@
       <span class="vs">-</span>
       <input type="number" min="0" name="score2_{{ m.id }}" value="{{ m.score2 if m.score2 is not none else '' }}">
       <span class="team">{{ m.team2 }}</span>
+      <button type="button" class="save-row-btn"
+              data-url="{{ url_for('admin_guardar', match_id=m.id) }}"
+              data-field1="score1" data-field2="score2">Guardar</button>
     </div>
   {% endfor %}
-  <button type="submit" class="save-btn">Guardar resultados</button>
+  <button type="submit" class="save-btn">Guardar todos los resultados</button>
 </form>
 {% endblock %}
