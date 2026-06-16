@@ -23,4 +23,30 @@
   {% endfor %}
   <button type="submit" class="save-btn">Guardar todos los resultados</button>
 </form>
+
+<hr style="margin: 2rem 0">
+<h2>Resetear contraseña de un usuario</h2>
+{% if users %}
+<table class="ranking-table">
+  <thead>
+    <tr><th>Usuario</th><th>Nueva contraseña</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u }}</td>
+      <td>
+        <form method="post" action="{{ url_for('admin_reset_password') }}" style="display:flex;gap:.5rem">
+          <input type="hidden" name="username" value="{{ u }}">
+          <input type="password" name="new_password" placeholder="Mínimo 4 caracteres" minlength="4" required style="width:180px">
+          <button type="submit" class="save-row-btn">Resetear</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No hay usuarios registrados todavía.</p>
+{% endif %}
 {% endblock %}

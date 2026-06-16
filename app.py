@@ -451,7 +451,8 @@ def admin():
         return redirect(url_for("admin"))
 
     matches = db.execute("SELECT * FROM matches ORDER BY match_number").fetchall()
-    return render_template("admin.html", matches=matches)
+    users = [row["username"] for row in db.execute("SELECT username FROM users ORDER BY username").fetchall()]
+    return render_template("admin.html", matches=matches, users=users)
 
 
 @app.route("/admin/guardar/<int:match_id>", methods=["POST"])
@@ -473,6 +474,25 @@ def admin_guardar(match_id):
     db.execute("UPDATE matches SET score1=?, score2=? WHERE id=?", (s1, s2, match_id))
     db.commit()
     return {"ok": True}
+
+
+@app.route("/admin/reset_password", methods=["POST"])
+def admin_reset_password():
+    if not session.get("admin"):
+        return {"ok": False, "error": "No autenticado"}, 403
+    username = request.form.get("username", "").strip()
+    new_password = request.form.get("new_password", "")
+    if not username or not new_password:
+        return redirect(url_for("admin"))
+    if len(new_password) < 4:
+        return redirect(url_for("admin"))
+    db = get_db()
+    db.execute(
+        "UPDATE users SET password_hash=? WHERE LOWER(username)=LOWER(?)",
+        (generate_password_hash(new_password), username),
+    )
+    db.commit()
+    return redirect(url_for("admin"))
 
 
 @app.route("/admin/logout")
