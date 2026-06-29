@@ -84,6 +84,23 @@ MATCHES = [
     (70, "2026-06-27", "J", "Jordania", "Argentina"),
     (71, "2026-06-27", "K", "Colombia", "Portugal"),
     (72, "2026-06-27", "K", "RD Congo", "Uzbekistán"),
+    # Dieciseisavos de final (Round of 32)
+    (73, "2026-06-28", "16avos", "Sudáfrica", "Canadá"),
+    (74, "2026-06-29", "16avos", "Alemania", "Paraguay"),
+    (75, "2026-06-29", "16avos", "Holanda", "Marruecos"),
+    (76, "2026-06-29", "16avos", "Brasil", "Japón"),
+    (77, "2026-06-30", "16avos", "Francia", "Suecia"),
+    (78, "2026-06-30", "16avos", "Costa de Marfil", "Noruega"),
+    (79, "2026-06-30", "16avos", "México", "Ecuador"),
+    (80, "2026-07-01", "16avos", "Inglaterra", "RD Congo"),
+    (81, "2026-07-01", "16avos", "Estados Unidos", "Bosnia y Herzegovina"),
+    (82, "2026-07-01", "16avos", "Bélgica", "Senegal"),
+    (83, "2026-07-02", "16avos", "Portugal", "Croacia"),
+    (84, "2026-07-02", "16avos", "España", "Austria"),
+    (85, "2026-07-02", "16avos", "Suiza", "Argelia"),
+    (86, "2026-07-03", "16avos", "Argentina", "Cabo Verde"),
+    (87, "2026-07-03", "16avos", "Colombia", "Ghana"),
+    (88, "2026-07-03", "16avos", "Australia", "Egipto"),
 ]
 
 
@@ -219,6 +236,13 @@ def init_db():
         for old, new in renames.items():
             db.execute("UPDATE matches SET team1=? WHERE team1=?", (new, old))
             db.execute("UPDATE matches SET team2=? WHERE team2=?", (new, old))
+        existing = {row["match_number"] for row in db.execute("SELECT match_number FROM matches").fetchall()}
+        new_matches = [m for m in MATCHES if m[0] not in existing]
+        if new_matches:
+            db.executemany(
+                "INSERT INTO matches (match_number, date, group_name, team1, team2) VALUES (?,?,?,?,?)",
+                new_matches,
+            )
     db.commit()
     db.close()
 

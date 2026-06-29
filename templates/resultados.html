@@ -6,7 +6,7 @@
 {% endif %}
 {% for match, user_preds in rows %}
   <div class="card result-card">
-    <h3>Grupo {{ match.group_name }} · {{ match.date }}</h3>
+    <h3>{% if match.group_name|length == 1 %}Grupo {{ match.group_name }}{% else %}{{ match.group_name }}{% endif %} · {{ match.date }}</h3>
     <h2>{{ match.team1 }} {{ match.score1 }} - {{ match.score2 }} {{ match.team2 }}</h2>
     <table class="preds-table">
       <thead>

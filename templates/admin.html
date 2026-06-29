@@ -10,7 +10,7 @@
       <h2 class="date-header">{{ m.date }}</h2>
     {% endif %}
     <div class="match-row">
-      <span class="group-tag">Grupo {{ m.group_name }}</span>
+      <span class="group-tag">{% if m.group_name|length == 1 %}Grupo {{ m.group_name }}{% else %}{{ m.group_name }}{% endif %}</span>
       <span class="team">{{ m.team1 }}</span>
       <input type="number" min="0" name="score1_{{ m.id }}" value="{{ m.score1 if m.score1 is not none else '' }}">
       <span class="vs">-</span>
